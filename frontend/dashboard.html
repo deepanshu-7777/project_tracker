@@ -1,47 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard — ProjectTracker</title>
-    <link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — ProjectTracker</title>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
 <nav class="navbar">
-    <div class="logo">ProjectTracker</div>
-    <div class="nav-links">
-        <a href="dashboard.html" class="active">Dashboard</a>
-        <a href="projects.html">Projects</a>
-        <a href="tasks.html">Tasks</a>
-    </div>
-    <div class="user-info" id="user-info"></div>
+  <div class="logo">⬡ ProjectTracker</div>
+  <div class="nav-links">
+    <a href="dashboard.html" class="active">Dashboard</a>
+    <a href="projects.html">Projects</a>
+    <a href="tasks.html">Tasks</a>
+  </div>
+  <div class="nav-right" id="user-info"></div>
 </nav>
 
 <div class="container">
-    <div class="page-header">
-        <h1>Dashboard</h1>
-    </div>
 
-    <!-- Stats -->
-    <div class="stats-grid" id="stats-grid">
-        <div class="stat-card"><div class="stat-number">—</div><div class="stat-label">Total Tasks</div></div>
+  <div class="page-header">
+    <div>
+      <h1 id="greeting">Good morning 👋</h1>
+      <p>Here's what's happening across your projects today.</p>
     </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card accent">
+      <div class="stat-icon">📋</div>
+      <div class="stat-number">—</div>
+      <div class="stat-label">Total Tasks</div>
+    </div>
+  </div>
+
+  <!-- Two column layout -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
 
     <!-- Overdue Tasks -->
-    <div class="card">
-        <div class="card-header">
-            <h3>Overdue Tasks</h3>
-            <span class="badge badge-overdue" id="overdue-count">0</span>
+    <div class="card" style="margin:0">
+      <div class="card-header" style="margin-bottom:16px">
+        <h3>🔴 Overdue Tasks</h3>
+        <span class="badge badge-overdue" id="overdue-count">0</span>
+      </div>
+      <div id="overdue-list">
+        <div class="empty">
+          <div class="empty-icon">🎉</div>
+          <h3>All caught up!</h3>
+          <p>No overdue tasks</p>
         </div>
-        <div id="overdue-list"><p style="color:#aaa;font-size:14px">No overdue tasks</p></div>
+      </div>
     </div>
 
-    <!-- Recent Tasks -->
-    <div class="card">
-        <h3 style="margin-bottom:16px">Recent Tasks</h3>
-        <div id="recent-tasks"><p style="color:#aaa;font-size:14px">Loading...</p></div>
+    <!-- Task status breakdown -->
+    <div class="card" style="margin:0">
+      <div class="card-header" style="margin-bottom:16px">
+        <h3>📊 Status Breakdown</h3>
+      </div>
+      <div id="status-chart"></div>
     </div>
+
+  </div>
+
+  <!-- Recent Tasks Table -->
+  <div class="card">
+    <div class="card-header" style="margin-bottom:20px">
+      <h3>🕐 Recent Tasks</h3>
+      <a href="tasks.html" class="btn btn-ghost btn-sm">View all →</a>
+    </div>
+    <div id="recent-tasks">
+      <div style="color:var(--text3);font-size:14px;padding:20px 0;text-align:center">Loading...</div>
+    </div>
+  </div>
+
 </div>
 
 <div id="toast" class="toast"></div>
@@ -50,80 +83,108 @@
 requireAuth();
 setupNavbar();
 
+// Greeting based on time
+const hour = new Date().getHours();
+const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+const user = getUser();
+document.getElementById('greeting').textContent = `${greet}, ${user?.name?.split(' ')[0]} 👋`;
+
 async function loadDashboard() {
-    try {
-        const stats = await apiFetch('/tasks/filter/dashboard');
-        const user  = getUser();
+  try {
+    const stats = await apiFetch('/tasks/filter/dashboard');
 
-        document.getElementById('stats-grid').innerHTML = `
-            <div class="stat-card">
-                <div class="stat-number">${stats.total_tasks}</div>
-                <div class="stat-label">Total Tasks</div>
-            </div>
-            <div class="stat-card warning">
-                <div class="stat-number">${stats.todo}</div>
-                <div class="stat-label">To Do</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">${stats.in_progress}</div>
-                <div class="stat-label">In Progress</div>
-            </div>
-            <div class="stat-card success">
-                <div class="stat-number">${stats.done}</div>
-                <div class="stat-label">Done</div>
-            </div>
-            <div class="stat-card danger">
-                <div class="stat-number">${stats.overdue}</div>
-                <div class="stat-label">Overdue</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">${stats.total_projects}</div>
-                <div class="stat-label">Projects</div>
-            </div>
-            ${user.role === 'admin' ? `
-            <div class="stat-card">
-                <div class="stat-number">${stats.total_users}</div>
-                <div class="stat-label">Total Users</div>
-            </div>` : ''}
-        `;
-    } catch(e) { showToast(e.message, 'error'); }
+    const cards = [
+      { label:'Total Tasks',  num: stats.total_tasks,   cls:'accent', icon:'📋' },
+      { label:'To Do',        num: stats.todo,           cls:'amber',  icon:'⏳' },
+      { label:'In Progress',  num: stats.in_progress,   cls:'blue',   icon:'⚡' },
+      { label:'Done',         num: stats.done,           cls:'green',  icon:'✅' },
+      { label:'Overdue',      num: stats.overdue,        cls:'red',    icon:'🔴' },
+      { label:'Projects',     num: stats.total_projects, cls:'accent', icon:'🗂' },
+    ];
+    if (user?.role === 'admin') {
+      cards.push({ label:'Total Users', num: stats.total_users, cls:'blue', icon:'👥' });
+    }
 
-    try {
-        const overdue = await apiFetch('/tasks/filter/overdue');
-        document.getElementById('overdue-count').textContent = overdue.length;
-        document.getElementById('overdue-list').innerHTML = overdue.length === 0
-            ? '<p style="color:#aaa;font-size:14px">No overdue tasks 🎉</p>'
-            : overdue.map(t => `
-                <div class="task-card high" style="margin-bottom:8px">
-                    <h4>${t.title}</h4>
-                    <div class="meta">
-                        ${t.project_name} &bull; Due: ${t.due_date} &bull;
-                        Assigned: ${t.assigned_to_name || 'Unassigned'}
-                    </div>
-                </div>`).join('');
-    } catch(e) {}
+    document.getElementById('stats-grid').innerHTML = cards.map(c => `
+      <div class="stat-card ${c.cls}">
+        <div class="stat-icon">${c.icon}</div>
+        <div class="stat-number">${c.num}</div>
+        <div class="stat-label">${c.label}</div>
+      </div>`).join('');
 
-    try {
-        const tasks = await apiFetch('/tasks/');
-        const recent = tasks.slice(0, 5);
-        document.getElementById('recent-tasks').innerHTML = recent.length === 0
-            ? '<p style="color:#aaa;font-size:14px">No tasks yet</p>'
-            : `<table class="table">
-                <thead><tr>
-                    <th>Task</th><th>Project</th><th>Status</th><th>Priority</th><th>Due</th>
-                </tr></thead>
-                <tbody>
-                ${recent.map(t => `
-                    <tr>
-                        <td><strong>${t.title}</strong></td>
-                        <td>${t.project_name || '—'}</td>
-                        <td><span class="badge badge-${t.status === 'in_progress' ? 'progress' : t.status}">${t.status}</span></td>
-                        <td><span class="badge badge-${t.priority}">${t.priority}</span></td>
-                        <td>${t.due_date || '—'}</td>
-                    </tr>`).join('')}
-                </tbody>
-               </table>`;
-    } catch(e) {}
+    // Status breakdown bars
+    const total = stats.total_tasks || 1;
+    document.getElementById('status-chart').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:16px">
+        ${[
+          { label:'To Do',       val: stats.todo,        color:'var(--amber)', pct: Math.round(stats.todo/total*100) },
+          { label:'In Progress', val: stats.in_progress, color:'var(--blue)',  pct: Math.round(stats.in_progress/total*100) },
+          { label:'Done',        val: stats.done,        color:'var(--green)', pct: Math.round(stats.done/total*100) },
+        ].map(s => `
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+              <span style="color:var(--text2)">${s.label}</span>
+              <span style="font-weight:700;color:var(--text)">${s.val} <span style="color:var(--text3);font-weight:400">(${s.pct}%)</span></span>
+            </div>
+            <div style="height:8px;background:var(--surface);border-radius:4px;overflow:hidden">
+              <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:4px;transition:width 0.8s ease"></div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+
+  } catch(e) { showToast(e.message, 'error'); }
+
+  // Overdue tasks
+  try {
+    const overdue = await apiFetch('/tasks/filter/overdue');
+    document.getElementById('overdue-count').textContent = overdue.length;
+    if (overdue.length === 0) {
+      document.getElementById('overdue-list').innerHTML = `
+        <div class="empty" style="padding:30px 0">
+          <div class="empty-icon">🎉</div>
+          <h3>All caught up!</h3>
+          <p>No overdue tasks</p>
+        </div>`;
+    } else {
+      document.getElementById('overdue-list').innerHTML = overdue.slice(0,4).map(t => `
+        <div class="overdue-card">
+          <div class="od-dot"></div>
+          <div>
+            <h4>${t.title}</h4>
+            <div class="meta">${t.project_name || '—'} &bull; Due ${t.due_date} &bull; ${t.assigned_to_name || 'Unassigned'}</div>
+          </div>
+        </div>`).join('');
+    }
+  } catch(e) {}
+
+  // Recent tasks
+  try {
+    const tasks = await apiFetch('/tasks/');
+    const recent = tasks.slice(0, 6);
+    if (recent.length === 0) {
+      document.getElementById('recent-tasks').innerHTML = `<div class="empty"><div class="empty-icon">📋</div><h3>No tasks yet</h3></div>`;
+      return;
+    }
+    document.getElementById('recent-tasks').innerHTML = `
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr>
+            <th>Task</th><th>Project</th><th>Assignee</th><th>Status</th><th>Priority</th><th>Due Date</th>
+          </tr></thead>
+          <tbody>
+          ${recent.map(t => `
+            <tr>
+              <td><strong>${t.title}</strong></td>
+              <td>${t.project_name || '—'}</td>
+              <td>${t.assigned_to_name || '<span style="color:var(--text3)">Unassigned</span>'}</td>
+              <td><span class="badge badge-${t.status === 'in_progress' ? 'progress' : t.status}">${t.status.replace('_',' ')}</span></td>
+              <td><span class="badge badge-${t.priority}">${t.priority}</span></td>
+              <td style="font-family:'JetBrains Mono',monospace;font-size:12px">${t.due_date || '—'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) {}
 }
 
 loadDashboard();

@@ -1,13 +1,7 @@
 const API = 'http://127.0.0.1:8000/api';
 
-function getToken() {
-    return localStorage.getItem('token');
-}
-
-function getUser() {
-    const u = localStorage.getItem('user');
-    return u ? JSON.parse(u) : null;
-}
+function getToken() { return localStorage.getItem('token'); }
+function getUser()  { const u = localStorage.getItem('user'); return u ? JSON.parse(u) : null; }
 
 function logout() {
     localStorage.clear();
@@ -22,58 +16,54 @@ function showToast(msg, type = 'success') {
         toast.className = 'toast';
         document.body.appendChild(toast);
     }
-    toast.textContent = msg;
+    const icons = { success: '✓', error: '✕', info: 'ℹ' };
+    toast.innerHTML = `<span>${icons[type] || '✓'}</span><span>${msg}</span>`;
     toast.className = `toast ${type} show`;
-    setTimeout(() => toast.className = 'toast', 3000);
+    setTimeout(() => { toast.className = 'toast'; }, 3500);
 }
 
 async function apiFetch(endpoint, method = 'GET', body = null) {
     const headers = { 'Content-Type': 'application/json' };
     const token = getToken();
     if (token) headers['Authorization'] = `Bearer ${token}`;
-
     const opts = { method, headers };
     if (body) opts.body = JSON.stringify(body);
-
     const res = await fetch(API + endpoint, opts);
     const data = await res.json();
-
-    if (!res.ok) {
-        throw new Error(data.detail || 'Something went wrong');
-    }
+    if (!res.ok) throw new Error(data.detail || 'Something went wrong');
     return data;
 }
 
 function setupNavbar() {
     const user = getUser();
     if (!user) return;
-
-    const userInfo = document.getElementById('user-info');
-    if (userInfo) {
-        userInfo.innerHTML = `
-            <span>${user.name} 
+    const el = document.getElementById('user-info');
+    if (el) {
+        const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+        el.innerHTML = `
+            <div class="user-chip">
+                <div class="avatar">${initials}</div>
+                <span class="user-name">${user.name}</span>
                 <span class="badge badge-${user.role}">${user.role}</span>
-            </span>
-            <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+            <button class="btn-logout" onclick="logout()">Sign out</button>
         `;
     }
-
-    // Hide admin-only elements for members
     if (user.role !== 'admin') {
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
     }
 }
 
 function requireAuth() {
-    if (!getToken()) {
-        window.location.href = '/index.html';
+    if (!getToken()) window.location.href = '/index.html';
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// Close modal on overlay click
+document.addEventListener('click', e => {
+    if (e.target.classList.contains('modal-overlay')) {
+        e.target.classList.remove('active');
     }
-}
-
-function openModal(id) {
-    document.getElementById(id).classList.add('active');
-}
-
-function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
-}
+});

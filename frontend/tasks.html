@@ -1,108 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tasks — ProjectTracker</title>
-    <link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tasks — ProjectTracker</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .kanban-col { transition: background 0.2s; }
+  .task-card { animation: slideIn 0.2s ease; }
+  @keyframes slideIn {
+    from { opacity:0; transform:translateY(8px); }
+    to   { opacity:1; transform:none; }
+  }
+  .task-count-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text2);
+  }
+</style>
 </head>
 <body>
 
 <nav class="navbar">
-    <div class="logo">ProjectTracker</div>
-    <div class="nav-links">
-        <a href="dashboard.html">Dashboard</a>
-        <a href="projects.html">Projects</a>
-        <a href="tasks.html" class="active">Tasks</a>
-    </div>
-    <div class="user-info" id="user-info"></div>
+  <div class="logo">⬡ ProjectTracker</div>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="projects.html">Projects</a>
+    <a href="tasks.html" class="active">Tasks</a>
+  </div>
+  <div class="nav-right" id="user-info"></div>
 </nav>
 
 <div class="container">
-    <div class="page-header">
-        <h1>Tasks</h1>
-        <div style="display:flex;gap:10px;align-items:center">
-            <select id="filter-project" onchange="loadTasks()" style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px">
-                <option value="">All Projects</option>
-            </select>
-            <button class="btn btn-primary admin-only" onclick="openModal('task-modal')">+ New Task</button>
-        </div>
+  <div class="page-header">
+    <div>
+      <h1>Task Board</h1>
+      <p>Track and manage tasks across all projects.</p>
     </div>
+    <div class="filter-bar">
+      <select id="filter-project" onchange="loadTasks()">
+        <option value="">All Projects</option>
+      </select>
+      <select id="filter-priority" onchange="filterByPriority()">
+        <option value="">All Priorities</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <button class="btn btn-primary admin-only" onclick="openModal('task-modal')">+ New Task</button>
+    </div>
+  </div>
 
-    <!-- Kanban Board -->
-    <div class="kanban">
-        <div class="kanban-col todo">
-            <h3>To Do</h3>
-            <div id="col-todo"></div>
-        </div>
-        <div class="kanban-col progress">
-            <h3>In Progress</h3>
-            <div id="col-progress"></div>
-        </div>
-        <div class="kanban-col done">
-            <h3>Done</h3>
-            <div id="col-done"></div>
-        </div>
+  <!-- Kanban Board -->
+  <div class="kanban">
+    <div class="kanban-col">
+      <div class="kanban-col-header">
+        <h3><span class="col-dot" style="background:var(--amber)"></span>To Do</h3>
+        <span class="task-count-badge" id="count-todo">0</span>
+      </div>
+      <div id="col-todo"></div>
     </div>
+    <div class="kanban-col">
+      <div class="kanban-col-header">
+        <h3><span class="col-dot" style="background:var(--blue)"></span>In Progress</h3>
+        <span class="task-count-badge" id="count-progress">0</span>
+      </div>
+      <div id="col-progress"></div>
+    </div>
+    <div class="kanban-col">
+      <div class="kanban-col-header">
+        <h3><span class="col-dot" style="background:var(--green)"></span>Done</h3>
+        <span class="task-count-badge" id="count-done">0</span>
+      </div>
+      <div id="col-done"></div>
+    </div>
+  </div>
 </div>
 
 <!-- Create Task Modal -->
 <div class="modal-overlay" id="task-modal">
-    <div class="modal">
-        <h3>Create New Task</h3>
-        <div class="form-group">
-            <label>Title</label>
-            <input type="text" id="task-title" placeholder="Task title">
-        </div>
-        <div class="form-group">
-            <label>Description</label>
-            <textarea id="task-desc" rows="2" placeholder="Optional description..."></textarea>
-        </div>
-        <div class="form-group">
-            <label>Project</label>
-            <select id="task-project"></select>
-        </div>
-        <div class="form-group">
-            <label>Assign To (User ID)</label>
-            <input type="number" id="task-assign" placeholder="User ID (optional)">
-        </div>
-        <div class="form-group">
-            <label>Priority</label>
-            <select id="task-priority">
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="low">Low</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Due Date</label>
-            <input type="date" id="task-due">
-        </div>
-        <div class="modal-footer">
-            <button class="btn" onclick="closeModal('task-modal')">Cancel</button>
-            <button class="btn btn-primary" onclick="createTask()">Create</button>
-        </div>
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Create New Task</h3>
+      <button class="modal-close" onclick="closeModal('task-modal')">✕</button>
     </div>
+    <div class="form-group">
+      <label>Task Title</label>
+      <input type="text" id="task-title" placeholder="What needs to be done?">
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="task-desc" rows="2" placeholder="Optional details..."></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="form-group">
+        <label>Project</label>
+        <select id="task-project"></select>
+      </div>
+      <div class="form-group">
+        <label>Priority</label>
+        <select id="task-priority">
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="form-group">
+        <label>Assign To (User ID)</label>
+        <input type="number" id="task-assign" placeholder="User ID">
+      </div>
+      <div class="form-group">
+        <label>Due Date</label>
+        <input type="date" id="task-due">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('task-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createTask()">Create Task</button>
+    </div>
+  </div>
 </div>
 
 <!-- Update Status Modal -->
 <div class="modal-overlay" id="status-modal">
-    <div class="modal">
-        <h3>Update Task Status</h3>
-        <input type="hidden" id="status-task-id">
-        <div class="form-group">
-            <label>New Status</label>
-            <select id="new-status">
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="done">Done</option>
-            </select>
-        </div>
-        <div class="modal-footer">
-            <button class="btn" onclick="closeModal('status-modal')">Cancel</button>
-            <button class="btn btn-primary" onclick="updateStatus()">Update</button>
-        </div>
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h3>Update Status</h3>
+      <button class="modal-close" onclick="closeModal('status-modal')">✕</button>
     </div>
+    <p style="color:var(--text2);font-size:14px;margin-bottom:20px" id="status-task-name"></p>
+    <input type="hidden" id="status-task-id">
+    <div class="form-group">
+      <label>New Status</label>
+      <select id="new-status">
+        <option value="todo">⏳ To Do</option>
+        <option value="in_progress">⚡ In Progress</option>
+        <option value="done">✅ Done</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('status-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="updateStatus()">Update</button>
+    </div>
+  </div>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -111,108 +157,143 @@
 requireAuth();
 setupNavbar();
 const user = getUser();
+let allTasks = [];
 
-async function loadProjects() {
-    try {
-        const projects = await apiFetch('/projects/');
-        const sel1 = document.getElementById('filter-project');
-        const sel2 = document.getElementById('task-project');
-        projects.forEach(p => {
-            sel1.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-            if (sel2) sel2.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-        });
-    } catch(e) {}
+async function loadProjectOptions() {
+  try {
+    const projects = await apiFetch('/projects/');
+    const sel1 = document.getElementById('filter-project');
+    const sel2 = document.getElementById('task-project');
+    projects.forEach(p => {
+      sel1.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+      if(sel2) sel2.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+    });
+
+    // Auto-select project from URL param
+    const params = new URLSearchParams(window.location.search);
+    const pid = params.get('project_id');
+    if (pid) {
+      sel1.value = pid;
+      loadTasks();
+    }
+  } catch(e) {}
 }
 
 async function loadTasks() {
-    const projectId = document.getElementById('filter-project').value;
-    const url = projectId ? `/tasks/?project_id=${projectId}` : '/tasks/';
-
-    try {
-        const tasks = await apiFetch(url);
-        const todo     = tasks.filter(t => t.status === 'todo');
-        const progress = tasks.filter(t => t.status === 'in_progress');
-        const done     = tasks.filter(t => t.status === 'done');
-
-        document.getElementById('col-todo').innerHTML     = renderTaskCards(todo);
-        document.getElementById('col-progress').innerHTML = renderTaskCards(progress);
-        document.getElementById('col-done').innerHTML     = renderTaskCards(done);
-    } catch(e) { showToast(e.message, 'error'); }
+  const projectId = document.getElementById('filter-project').value;
+  const url = projectId ? `/tasks/?project_id=${projectId}` : '/tasks/';
+  try {
+    allTasks = await apiFetch(url);
+    renderTasks(allTasks);
+  } catch(e) { showToast(e.message, 'error'); }
 }
 
-function renderTaskCards(tasks) {
-    if (tasks.length === 0) return '<p style="color:#aaa;font-size:13px;text-align:center;padding:20px">Empty</p>';
-
-    return tasks.map(t => `
-        <div class="task-card ${t.priority}">
-            <h4>${t.title}</h4>
-            <div class="meta">
-                <span class="badge badge-${t.priority}">${t.priority}</span>
-                ${t.due_date ? `&bull; Due: ${t.due_date}` : ''}
-            </div>
-            <div class="meta" style="margin-top:4px">
-                ${t.project_name ? `Project: ${t.project_name}` : ''}
-                ${t.assigned_to_name ? `&bull; ${t.assigned_to_name}` : ''}
-            </div>
-            <div class="actions">
-                <button class="btn btn-sm btn-warning" onclick="openStatusModal(${t.id}, '${t.status}')">Update Status</button>
-                ${user.role === 'admin' ? `<button class="btn btn-sm btn-danger" onclick="deleteTask(${t.id})">Delete</button>` : ''}
-            </div>
-        </div>`).join('');
+function filterByPriority() {
+  const priority = document.getElementById('filter-priority').value;
+  const filtered = priority ? allTasks.filter(t => t.priority === priority) : allTasks;
+  renderTasks(filtered);
 }
 
-function openStatusModal(taskId, currentStatus) {
-    document.getElementById('status-task-id').value = taskId;
-    document.getElementById('new-status').value = currentStatus;
-    openModal('status-modal');
+function renderTasks(tasks) {
+  const todo     = tasks.filter(t => t.status === 'todo');
+  const progress = tasks.filter(t => t.status === 'in_progress');
+  const done     = tasks.filter(t => t.status === 'done');
+
+  document.getElementById('count-todo').textContent     = todo.length;
+  document.getElementById('count-progress').textContent = progress.length;
+  document.getElementById('count-done').textContent     = done.length;
+
+  document.getElementById('col-todo').innerHTML     = renderCards(todo);
+  document.getElementById('col-progress').innerHTML = renderCards(progress);
+  document.getElementById('col-done').innerHTML     = renderCards(done);
+}
+
+function renderCards(tasks) {
+  if (!tasks.length) return `
+    <div style="text-align:center;padding:32px 16px;color:var(--text3);font-size:13px">
+      <div style="font-size:28px;margin-bottom:8px;opacity:0.3">📭</div>
+      Empty
+    </div>`;
+
+  return tasks.map(t => {
+    const isOverdue = t.due_date && new Date(t.due_date) < new Date() && t.status !== 'done';
+    return `
+      <div class="task-card ${t.priority}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <h4 style="flex:1;padding-right:8px">${t.title}</h4>
+          <span class="badge badge-${t.priority}">${t.priority}</span>
+        </div>
+        ${t.description ? `<p style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.5">${t.description}</p>` : ''}
+        <div class="meta">
+          ${t.project_name ? `<span>🗂 ${t.project_name}</span>` : ''}
+          ${t.assigned_to_name ? `<span>👤 ${t.assigned_to_name}</span>` : ''}
+          ${t.due_date ? `<span style="${isOverdue ? 'color:var(--red);font-weight:600' : ''}">📅 ${t.due_date}${isOverdue ? ' ⚠' : ''}</span>` : ''}
+        </div>
+        <div class="actions">
+          <button class="btn btn-sm btn-warning" onclick="openStatusModal(${t.id},'${t.status}','${t.title.replace(/'/g,"\\'")}')">
+            Update Status
+          </button>
+          ${user.role === 'admin' ? `<button class="btn btn-sm btn-danger" onclick="deleteTask(${t.id})">Delete</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openStatusModal(taskId, currentStatus, taskName) {
+  document.getElementById('status-task-id').value = taskId;
+  document.getElementById('status-task-name').textContent = `"${taskName}"`;
+  document.getElementById('new-status').value = currentStatus;
+  openModal('status-modal');
 }
 
 async function updateStatus() {
-    const taskId = document.getElementById('status-task-id').value;
-    const status = document.getElementById('new-status').value;
-    try {
-        await apiFetch(`/tasks/${taskId}`, 'PATCH', { status });
-        showToast('Status updated!');
-        closeModal('status-modal');
-        loadTasks();
-    } catch(e) { showToast(e.message, 'error'); }
+  const taskId = document.getElementById('status-task-id').value;
+  const status = document.getElementById('new-status').value;
+  try {
+    await apiFetch(`/tasks/${taskId}`, 'PATCH', { status });
+    showToast('Status updated!', 'success');
+    closeModal('status-modal');
+    loadTasks();
+  } catch(e) { showToast(e.message, 'error'); }
 }
 
 async function createTask() {
-    const title      = document.getElementById('task-title').value.trim();
-    const description = document.getElementById('task-desc').value.trim();
-    const project_id = parseInt(document.getElementById('task-project').value);
-    const assigned_to = document.getElementById('task-assign').value;
-    const priority   = document.getElementById('task-priority').value;
-    const due_date   = document.getElementById('task-due').value;
+  const title       = document.getElementById('task-title').value.trim();
+  const description = document.getElementById('task-desc').value.trim();
+  const project_id  = parseInt(document.getElementById('task-project').value);
+  const assigned_to = document.getElementById('task-assign').value;
+  const priority    = document.getElementById('task-priority').value;
+  const due_date    = document.getElementById('task-due').value;
 
-    if (!title) return showToast('Title is required', 'error');
-    if (!project_id) return showToast('Select a project', 'error');
+  if (!title)      return showToast('Task title is required', 'error');
+  if (!project_id) return showToast('Please select a project', 'error');
 
-    const body = { title, description, project_id, priority };
-    if (assigned_to) body.assigned_to = parseInt(assigned_to);
-    if (due_date) body.due_date = due_date;
+  const body = { title, description, project_id, priority };
+  if (assigned_to) body.assigned_to = parseInt(assigned_to);
+  if (due_date)    body.due_date    = due_date;
 
-    try {
-        await apiFetch('/tasks/', 'POST', body);
-        showToast('Task created!');
-        closeModal('task-modal');
-        document.getElementById('task-title').value = '';
-        document.getElementById('task-desc').value = '';
-        loadTasks();
-    } catch(e) { showToast(e.message, 'error'); }
+  try {
+    await apiFetch('/tasks/', 'POST', body);
+    showToast('Task created!', 'success');
+    closeModal('task-modal');
+    document.getElementById('task-title').value = '';
+    document.getElementById('task-desc').value  = '';
+    document.getElementById('task-assign').value = '';
+    document.getElementById('task-due').value    = '';
+    loadTasks();
+  } catch(e) { showToast(e.message, 'error'); }
 }
 
 async function deleteTask(id) {
-    if (!confirm('Delete this task?')) return;
-    try {
-        await apiFetch(`/tasks/${id}`, 'DELETE');
-        showToast('Task deleted');
-        loadTasks();
-    } catch(e) { showToast(e.message, 'error'); }
+  if (!confirm('Delete this task?')) return;
+  try {
+    await apiFetch(`/tasks/${id}`, 'DELETE');
+    showToast('Task deleted', 'info');
+    loadTasks();
+  } catch(e) { showToast(e.message, 'error'); }
 }
 
-loadProjects();
+loadProjectOptions();
 loadTasks();
 </script>
 </body>
