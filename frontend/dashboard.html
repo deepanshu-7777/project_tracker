@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — ProjectTracker</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">ProjectTracker</div>
+    <div class="nav-links">
+        <a href="dashboard.html" class="active">Dashboard</a>
+        <a href="projects.html">Projects</a>
+        <a href="tasks.html">Tasks</a>
+    </div>
+    <div class="user-info" id="user-info"></div>
+</nav>
+
+<div class="container">
+    <div class="page-header">
+        <h1>Dashboard</h1>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="stat-number">—</div><div class="stat-label">Total Tasks</div></div>
+    </div>
+
+    <!-- Overdue Tasks -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Overdue Tasks</h3>
+            <span class="badge badge-overdue" id="overdue-count">0</span>
+        </div>
+        <div id="overdue-list"><p style="color:#aaa;font-size:14px">No overdue tasks</p></div>
+    </div>
+
+    <!-- Recent Tasks -->
+    <div class="card">
+        <h3 style="margin-bottom:16px">Recent Tasks</h3>
+        <div id="recent-tasks"><p style="color:#aaa;font-size:14px">Loading...</p></div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<script src="js/app.js"></script>
+<script>
+requireAuth();
+setupNavbar();
+
+async function loadDashboard() {
+    try {
+        const stats = await apiFetch('/tasks/filter/dashboard');
+        const user  = getUser();
+
+        document.getElementById('stats-grid').innerHTML = `
+            <div class="stat-card">
+                <div class="stat-number">${stats.total_tasks}</div>
+                <div class="stat-label">Total Tasks</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-number">${stats.todo}</div>
+                <div class="stat-label">To Do</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.in_progress}</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-number">${stats.done}</div>
+                <div class="stat-label">Done</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-number">${stats.overdue}</div>
+                <div class="stat-label">Overdue</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.total_projects}</div>
+                <div class="stat-label">Projects</div>
+            </div>
+            ${user.role === 'admin' ? `
+            <div class="stat-card">
+                <div class="stat-number">${stats.total_users}</div>
+                <div class="stat-label">Total Users</div>
+            </div>` : ''}
+        `;
+    } catch(e) { showToast(e.message, 'error'); }
+
+    try {
+        const overdue = await apiFetch('/tasks/filter/overdue');
+        document.getElementById('overdue-count').textContent = overdue.length;
+        document.getElementById('overdue-list').innerHTML = overdue.length === 0
+            ? '<p style="color:#aaa;font-size:14px">No overdue tasks 🎉</p>'
+            : overdue.map(t => `
+                <div class="task-card high" style="margin-bottom:8px">
+                    <h4>${t.title}</h4>
+                    <div class="meta">
+                        ${t.project_name} &bull; Due: ${t.due_date} &bull;
+                        Assigned: ${t.assigned_to_name || 'Unassigned'}
+                    </div>
+                </div>`).join('');
+    } catch(e) {}
+
+    try {
+        const tasks = await apiFetch('/tasks/');
+        const recent = tasks.slice(0, 5);
+        document.getElementById('recent-tasks').innerHTML = recent.length === 0
+            ? '<p style="color:#aaa;font-size:14px">No tasks yet</p>'
+            : `<table class="table">
+                <thead><tr>
+                    <th>Task</th><th>Project</th><th>Status</th><th>Priority</th><th>Due</th>
+                </tr></thead>
+                <tbody>
+                ${recent.map(t => `
+                    <tr>
+                        <td><strong>${t.title}</strong></td>
+                        <td>${t.project_name || '—'}</td>
+                        <td><span class="badge badge-${t.status === 'in_progress' ? 'progress' : t.status}">${t.status}</span></td>
+                        <td><span class="badge badge-${t.priority}">${t.priority}</span></td>
+                        <td>${t.due_date || '—'}</td>
+                    </tr>`).join('')}
+                </tbody>
+               </table>`;
+    } catch(e) {}
+}
+
+loadDashboard();
+</script>
+</body>
+</html>
