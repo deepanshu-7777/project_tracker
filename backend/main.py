@@ -1,8 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer
 from backend.routes import auth, projects, tasks
 
-app = FastAPI(title="Project Tracker API", version="1.0")
+security = HTTPBearer()
+
+app = FastAPI(
+    title="Project Tracker API",
+    version="1.0",
+)
 
 app.add_middleware(
     CORSMiddleware,
