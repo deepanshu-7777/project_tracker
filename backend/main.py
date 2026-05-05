@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from backend.routes import auth, projects, tasks
+import os
 
 app = FastAPI(title="Project Tracker API", version="1.0")
 

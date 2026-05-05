@@ -1,4 +1,4 @@
-const API = 'http://127.0.0.1:8000/api';
+const API = '/api';
 
 function getToken() { return localStorage.getItem('token'); }
 function getUser()  { const u = localStorage.getItem('user'); return u ? JSON.parse(u) : null; }
